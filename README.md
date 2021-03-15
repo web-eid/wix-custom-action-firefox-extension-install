@@ -1,5 +1,7 @@
 # WiX custom action for installing a Firefox extension with enterprise policy
 
+![European Regional Development Fund](https://github.com/open-eid/DigiDoc4-Client/blob/master/client/images/EL_Regionaalarengu_Fond.png)
+
 *FirefoxAction* is a custom action for WiX that installs the given Firefox
 extension with the Firefox enterprise policy engine.
 
