@@ -1,0 +1,15 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v3
+    - uses: microsoft/setup-msbuild@v1.1
+    - uses: NuGet/setup-nuget@v1
+    - run: nuget restore src/FirefoxAction.sln
+    - run: msbuild src/FirefoxAction.sln -t:rebuild -property:Configuration=Release
+    - uses: actions/upload-artifact@v3
+      with:
+        name: dll
+        path: ./src/bin/Release/FirefoxAction.CA.dll
