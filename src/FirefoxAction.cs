@@ -40,8 +40,8 @@ namespace FirefoxAction
             session.Log("Begin ExtensionSettingsInstall " + extensionSettings.UUID);
             using (RegistryKey firefox = Utils.FirefoxKey())
             {
-                string[] value = (string[])firefox.GetValue("ExtensionSettings", new string[] { "{}" });
-                JObject json = JObject.Parse(string.Join("\n", value));
+                string value = firefox.GetStringValue("ExtensionSettings", "{}");
+                JObject json = JObject.Parse(value);
                 json[extensionSettings.UUID] = new JObject
                 {
                     ["installation_mode"] = "normal_installed",
@@ -59,10 +59,10 @@ namespace FirefoxAction
             session.Log("Begin ExtensionSettingsRemove " + extensionSettings.UUID);
             using (RegistryKey firefox = Utils.FirefoxKey())
             {
-                string[] value = (string[])firefox.GetValue("ExtensionSettings");
+                string value = firefox.GetStringValue("ExtensionSettings");
                 if (value != null)
                 {
-                    JObject json = JObject.Parse(string.Join("\n", value));
+                    JObject json = JObject.Parse(value);
                     json[extensionSettings.UUID] = new JObject
                     {
                         ["installation_mode"] = "blocked"
@@ -97,6 +97,19 @@ namespace FirefoxAction
         internal static RegistryKey OpenOrCreateSubKey(this RegistryKey registryKey, string name, bool writable = false)
         {
             return registryKey.OpenSubKey(name, writable) ?? registryKey.CreateSubKey(name);
+        }
+
+        internal static string GetStringValue(this RegistryKey registryKey, string name, string defaultValue = null)
+        {
+            switch (registryKey.GetValueKind(name))
+            {
+            case RegistryValueKind.String:
+            case RegistryValueKind.ExpandString:
+                return (string)registryKey.GetValue(name, defaultValue);
+            case RegistryValueKind.MultiString:
+                return string.Join("\n", (string[])registryKey.GetValue(name));
+            default: return defaultValue;
+            }
         }
     }
 }
