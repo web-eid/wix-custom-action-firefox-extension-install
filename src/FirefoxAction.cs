@@ -101,6 +101,8 @@ namespace FirefoxAction
 
         internal static string GetStringValue(this RegistryKey registryKey, string name, string defaultValue = null)
         {
+            if (!registryKey.ContainsName(name))
+                return defaultValue;
             switch (registryKey.GetValueKind(name))
             {
             case RegistryValueKind.String:
@@ -110,6 +112,16 @@ namespace FirefoxAction
                 return string.Join("\n", (string[])registryKey.GetValue(name));
             default: return defaultValue;
             }
+        }
+
+        internal static bool ContainsName(this RegistryKey key, string name)
+        {
+            foreach (string value in key.GetValueNames())
+            {
+                if (value == name)
+                    return true;
+            }
+            return false;
         }
     }
 }
