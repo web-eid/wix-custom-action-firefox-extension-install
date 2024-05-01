@@ -25,11 +25,11 @@ The custom actions must be scheduled in `InstallExecuteSequence` as follows:
     <InstallExecuteSequence>
       <Custom Action="SetExtensionSettingsForInstall" Before="InstallInitialize" />
       <Custom Action="ExtensionSettingsInstall" Before="InstallFinalize">
-        NOT ((REMOVE="ALL") AND (NOT UPGRADINGPRODUCTCODE))
+        NOT REMOVE="ALL"
       </Custom>
       <Custom Action="SetExtensionSettingsForRemove" Before="InstallInitialize" />
       <Custom Action="ExtensionSettingsRemove" Before="InstallFinalize">
-        (REMOVE="ALL") AND (NOT UPGRADINGPRODUCTCODE)
+        REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE
       </Custom>
     </InstallExecuteSequence>
 
