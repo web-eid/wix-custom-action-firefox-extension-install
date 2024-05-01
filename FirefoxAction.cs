@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2023 Estonian Information System Authority
+ * Copyright (c) 2019-2024 Estonian Information System Authority
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,18 @@
  * SOFTWARE.
  */
 
-using Microsoft.Deployment.WindowsInstaller;
 using Microsoft.Win32;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Linq;
+using WixToolset.Dtf.WindowsInstaller;
 
 namespace FirefoxAction
 {
     public class FirefoxActions
     {
+        const string KEY_NAME = "ExtensionSettings";
+
         [CustomAction]
         public static ActionResult ExtensionSettingsInstall(Session session)
         {
@@ -36,18 +40,17 @@ namespace FirefoxAction
             // with error status 1603, but when letting exceptions through the raw exception
             // stack trace will be logged in installer log which gives more information.
 
-            var extensionSettings = GetExtensionSettingsFromSession(session);
+            var extensionSettings = session.GetExtensionSettings();
             session.Log("Begin ExtensionSettingsInstall " + extensionSettings.UUID);
             using (RegistryKey firefox = Utils.FirefoxKey())
             {
-                string value = firefox.GetStringValue("ExtensionSettings", "{}");
-                JObject json = JObject.Parse(value);
+                var json = firefox.GetJSON(KEY_NAME, "{}");
                 json[extensionSettings.UUID] = new JObject
                 {
                     ["installation_mode"] = "normal_installed",
                     ["install_url"] = extensionSettings.URL
                 };
-                firefox.SetValue("ExtensionSettings", json.ToString().Split('\n'));
+                firefox.SetValue(KEY_NAME, json.ToString().Split('\n'));
                 return ActionResult.Success;
             }
         }
@@ -55,25 +58,27 @@ namespace FirefoxAction
         [CustomAction]
         public static ActionResult ExtensionSettingsRemove(Session session)
         {
-            var extensionSettings = GetExtensionSettingsFromSession(session);
+            var extensionSettings = session.GetExtensionSettings();
             session.Log("Begin ExtensionSettingsRemove " + extensionSettings.UUID);
             using (RegistryKey firefox = Utils.FirefoxKey())
             {
-                string value = firefox.GetStringValue("ExtensionSettings");
-                if (value != null)
+                var json = firefox.GetJSON(KEY_NAME);
+                if (json != null)
                 {
-                    JObject json = JObject.Parse(value);
                     json[extensionSettings.UUID] = new JObject
                     {
                         ["installation_mode"] = "blocked"
                     };
-                    firefox.SetValue("ExtensionSettings", json.ToString().Split('\n'));
+                    firefox.SetValue(KEY_NAME, json.ToString().Split('\n'));
                 }
-                return ActionResult.Success;
             }
+            return ActionResult.Success;
         }
+    }
 
-        private static (string UUID, string URL) GetExtensionSettingsFromSession(Session session)
+    internal static class Utils
+    {
+        internal static (string UUID, string URL) GetExtensionSettings(this Session session)
         {
             // Deferred custom actions cannot directly access installer properties from session,
             // only the CustomActionData property is available, see README how to populate it.
@@ -82,10 +87,7 @@ namespace FirefoxAction
                 session.CustomActionData["EXTENSIONSETTINGS_URL"]
            );
         }
-    }
 
-    internal static class Utils
-    {
         internal static RegistryKey FirefoxKey()
         {
             using (RegistryKey mozilla = Registry.LocalMachine.OpenOrCreateSubKey(@"Software\Policies\Mozilla", true))
@@ -101,7 +103,7 @@ namespace FirefoxAction
 
         internal static string GetStringValue(this RegistryKey registryKey, string name, string defaultValue = null)
         {
-            if (!registryKey.ContainsName(name))
+            if (!registryKey.GetValueNames().Any(name.Equals))
                 return defaultValue;
             switch (registryKey.GetValueKind(name))
             {
@@ -114,14 +116,21 @@ namespace FirefoxAction
             }
         }
 
-        internal static bool ContainsName(this RegistryKey key, string name)
+        internal static JObject GetJSON(this RegistryKey registryKey, string name, string defaultValue = null)
         {
-            foreach (string value in key.GetValueNames())
+            string value = registryKey.GetStringValue(name, defaultValue);
+            if (value == null)
             {
-                if (value == name)
-                    return true;
+                return null;
             }
-            return false;
+            try
+            {
+                return JObject.Parse(value);
+            }
+            catch (JsonReaderException)
+            {
+                return new JObject();
+            }
         }
     }
 }
