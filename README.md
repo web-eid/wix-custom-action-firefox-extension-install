@@ -1,5 +1,8 @@
 # WiX custom action for installing a Firefox extension with enterprise policy
 
+**NB! Please note that the wix-custom-action-firefox-extension-install code was moved to web-eid-app repository.<br>
+We won't be accepting pull requests or responding to issues in this repository anymore. We are happy to accept your proposals in the web-eid-app repository: https://github.com/web-eid/web-eid-app.**
+
 *FirefoxAction* is a custom action for WiX that installs the given Firefox
 extension with the Firefox enterprise policy engine.
 
